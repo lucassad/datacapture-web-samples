@@ -83,6 +83,8 @@ async function run(): Promise<void> {
     Symbology.UPCE,
     Symbology.Code39,
     Symbology.Code128,
+    Symbology.DataMatrix,
+    Symbology.QR
   ]);
 
   // Create a new barcode tracking mode with the settings from above.
