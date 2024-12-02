@@ -1,4 +1,3 @@
-import type { CameraSwitchControl } from "scandit-web-datacapture-core";
 import {
   DataCaptureContext,
   AimerViewfinder,
@@ -11,12 +10,12 @@ import {
   RectangularLocationSelection,
   MeasureUnit,
   NumberWithUnit,
-} from "scandit-web-datacapture-core";
+} from "@scandit/web-datacapture-core";
 import type {
   BarcodeCaptureListener,
   BarcodeCaptureSession,
   BarcodeFindViewUiListener,
-} from "scandit-web-datacapture-barcode";
+} from "@scandit/web-datacapture-barcode";
 import {
   BarcodeFindView,
   BarcodeFindItem,
@@ -29,7 +28,7 @@ import {
   Symbology,
   barcodeCaptureLoader,
   BarcodeFind,
-} from "scandit-web-datacapture-barcode";
+} from "@scandit/web-datacapture-barcode";
 
 import type { ListViewEventMap } from "./components/organisms/ListView.js";
 import { ListView } from "./components/organisms/ListView.js";
@@ -62,11 +61,7 @@ class Presenter implements BarcodeFindViewUiListener, BarcodeCaptureListener {
     Symbology.DataMatrix,
   ];
 
-  private readonly camera: Camera | null = null;
-
   private readonly rootCaptureElement: HTMLElement;
-
-  private readonly cameraSwitchControl: CameraSwitchControl | null = null;
 
   public constructor(state: StateModel, listView: ListView) {
     this.state = state;
@@ -103,7 +98,7 @@ class Presenter implements BarcodeFindViewUiListener, BarcodeCaptureListener {
     await this.context?.frameSource?.switchToDesiredState(FrameSourceState.On);
 
     // The settings instance initially has all types of barcodes (symbologies) disabled. For the purpose of this
-    // sample we enable a very generous set of symbologies. In your own app ensure that you only enable the
+    //  sample, we enable a very generous set of symbologies. In your own app ensure that you only enable the
     // symbologies that your app requires as every additional enabled symbology has an impact on processing times.
     settings.enableSymbologies(this.symbologyList);
 
@@ -117,7 +112,7 @@ class Presenter implements BarcodeFindViewUiListener, BarcodeCaptureListener {
     this.barcodeCapture.addListener(this);
 
     // Add a barcode capture overlay to the data capture view to render.
-    // This is optional, but recommended for better visual feedback.
+    // This is optional but recommended for better visual feedback.
     this.barcodeCaptureOverlay = await BarcodeCaptureOverlay.withBarcodeCaptureForViewWithStyle(
       this.barcodeCapture,
       this.dataCaptureView,
@@ -153,16 +148,15 @@ class Presenter implements BarcodeFindViewUiListener, BarcodeCaptureListener {
   };
 
   public async restart(): Promise<void> {
-    this.barcodeCapture?.removeListener(this);
-    await this.context?.removeAllModes();
-    if (this.barcodeCaptureOverlay) {
+    if (this.barcodeCaptureOverlay != null) {
       await this.dataCaptureView?.removeOverlay(this.barcodeCaptureOverlay);
     }
+    this.barcodeCapture?.removeListener(this);
+    await this.context?.removeAllModes();
     this.barcodeFindView?.remove();
   }
 
   public async didTapFinishButton(_foundItems: BarcodeFindItem[]): Promise<void> {
-    await this.barcodeFindView?.stopSearching();
     this.state.removeAllCodes();
     await this.restart();
     await this.switchToCaptureMode();
@@ -187,7 +181,18 @@ async function run(): Promise<void> {
 }
 
 run().catch((error: unknown) => {
+  let errorMessage = (error as Error).toString();
+  if (error instanceof Error && error.name === "NoLicenseKeyError") {
+    errorMessage = `
+        NoLicenseKeyError:
+        
+        Make sure SCANDIT_LICENSE_KEY is available in your environment, by either:
+        - running \`SCANDIT_LICENSE_KEY=<YOUR_LICENSE_KEY> npm run build\`
+        - placing your license key in a \`.env\` file at the root of the sample directory 
+        — or by inserting your license key into \`index.ts\`, replacing the placeholder \`-- ENTER YOUR SCANDIT LICENSE KEY HERE --\` with the key.
+    `;
+  }
   // eslint-disable-next-line no-console
   console.error(error);
-  alert((error as Error).toString());
+  alert(errorMessage);
 });
